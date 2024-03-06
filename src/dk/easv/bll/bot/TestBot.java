@@ -8,8 +8,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-
-public class UnkillableDemon implements IBot {
+public class TestBot implements IBot {
     final int moveTimeMs = 1000;
     private String BOT_NAME = getClass().getSimpleName();
     private long timerStartMillis = 0;
@@ -24,19 +23,12 @@ public class UnkillableDemon implements IBot {
         simulator.getCurrentState().getField().setBoard(state.getField().getBoard());
         simulator.getCurrentState().getField().setMacroboard(state.getField().getMacroboard());
         return simulator;
-        }
-    private void startTimer(String message){
-        timerStartMillis = System.currentTimeMillis();
-        timerMsg = message;
     }
 
-    private void stopTimer(){
-        System.out.println(timerMsg + " took : " + (System.currentTimeMillis() - timerStartMillis) + "ms");
-    }
 
     @Override
     public IMove doMove(IGameState state) {
-        startTimer("Minimax move");
+        //startTimer("Minimax move");
 
         return calculateWinningMove(state, moveTimeMs);
     }
@@ -45,38 +37,16 @@ public class UnkillableDemon implements IBot {
     private IMove calculateWinningMove(IGameState state, int maxTimeMs){
         long startTime = System.currentTimeMillis();
         int depth = 5; // Set the maximum depth for the search tree
-
+        // grazina move findBestMove
         IMove bestMove = null;
-        int bestScore = Integer.MIN_VALUE;
-
-        List<IMove> moves = state.getField().getAvailableMoves();
-        for (IMove move : moves) {
-            GameSimulator simulator = createSimulator(state);
-            simulator.updateGame(move);
-            int score = simulator.minimax(simulator, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
-            long moveEndTime = System.currentTimeMillis(); // Record end time for each move
-            long moveTime = moveEndTime - startTime; // Calculate time taken for this move
-            System.out.println("Move evaluation time: " + moveTime + " milliseconds");
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
-        }
+        GameSimulator simulator = createSimulator(state);
+        bestMove = simulator.findBestMove(simulator,depth);
 
         long endTime = System.currentTimeMillis();
-        stopTimer();
-
-        if (endTime - startTime >= maxTimeMs) {
+        //stopTimer();
             // Return the best move found within the time limit
             return bestMove;
-        } else if(bestMove != null){
-            // If time runs out, return a random move
-                return bestMove;
-            }else {
-            Random rand = new Random();
-            return moves.get(rand.nextInt(moves.size()));
-        }
+
     }
 
 
@@ -113,6 +83,10 @@ public class UnkillableDemon implements IBot {
             this.y = y;
         }
 
+        public Move() {
+
+        }
+
         @Override
         public int getX() {
             return x;
@@ -123,19 +97,27 @@ public class UnkillableDemon implements IBot {
             return y;
         }
 
+
         @Override
         public String toString() {
             return "(" + x + "," + y + ")";
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ExampleSneakyBot.Move move = (ExampleSneakyBot.Move) o;
-            return x == move.x && y == move.y;
-        }
-
+       // @Override
+       // public boolean equals(Object o) {
+       //     if (this == o) return true;
+       //     if (o == null || getClass() != o.getClass()) return false;
+       //     ExampleSneakyBot.Move move = (ExampleSneakyBot.Move) o;
+       //     return x == move.x && y == move.y;
+       // }
+       @Override
+       public boolean equals(Object o) {
+           if (this == o) return true;
+           if (o == null || getClass() != o.getClass()) return false;
+           Move move = (Move) o;
+           return x == move.x && y == move.y;
+       }
+//
         @Override
         public int hashCode() {
             return Objects.hash(x, y);
@@ -147,6 +129,8 @@ public class UnkillableDemon implements IBot {
     class GameSimulator {
         private final IGameState currentState;
         private int currentPlayer = 0; //player0 == 0 && player1 == 1
+        private int player;
+        private int opponent;
         private volatile GameOverState gameOver = GameOverState.Active;
 
         public void setGameOver(GameOverState state) {
@@ -310,65 +294,245 @@ public class UnkillableDemon implements IBot {
                     }
             }
         }
-
-        private int minimax(GameSimulator simulator, int depth,int alpha, int beta, boolean isMaximizingPlayer) {
+        //--------------------------------------
+        private int minimax(GameSimulator simulator, int depth, int alpha, int beta, boolean isMaximizingPlayer) {
+        //minimax(GameSimulator simulator, int depth, int alpha, int beta, boolean isMaximizingPlayer)
+            int score = evaluate(simulator);
             if (depth == 0 || simulator.getGameOver() != GameOverState.Active) {
                 // If at max depth or game over, evaluate the board state
-                return evaluate(simulator);
+                System.out.println("score from evaluation" + score);
+                return score;
+
                 //return 0;
             }
-            List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves(); // available moves in current macroboard
+            // If Maximizer has won the game
+            // return his/her evaluated score
+            if (score >= 1000)
+                return score;
+            if (score >= 10)
+                return score;
+            // If Minimizer has won the game
+            // return his/her evaluated score
+            if (score <= -1000)
+                return score;
+            if (score <= -10)
+                return score;
+            // If there are no more moves and
+            // no winner then it is a tie
+            if (simulator.getCurrentState().getField().getAvailableMoves().isEmpty()){
+                System.out.println("score from middle" + 0);
+                return 0;}
+
+            // If this maximizer's move
             if (isMaximizingPlayer) {
-                int bestScore = Integer.MIN_VALUE; //-2,1miliardas
+                int best = Integer.MIN_VALUE;
+
+                //int best = -1000;
+                List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
+                // Traverse all cells
                 for (IMove move : moves) {
+                    // Current state clone
                     GameSimulator newSimulator = createSimulator(simulator.getCurrentState());
+                    // Make the move
                     newSimulator.updateGame(move);
-                    int score = minimax(newSimulator, depth -1, alpha, beta, false);
-                    bestScore = Math.max(bestScore, score);
-                    alpha = Math.max(alpha, score);
-                    // Beta cut-off: if beta is less than or equal to alpha, stop searching further
+                    int val = minimax(newSimulator, depth - 1, alpha, beta, false /*isMaximizingPlayer*/);
+                    best = Math.max(best, val);
+                    alpha = Math.max(alpha, best);
                     if (beta <= alpha)
                         break; // Beta cut-off
                 }
-                return bestScore;
-            } else {
-                int bestScore = Integer.MAX_VALUE;
+                return best;
+            } else  // If this minimizer's move
+            {
+               // int best = 1000;
+                int best = Integer.MAX_VALUE;
+                List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
+                // Traverse all cells
                 for (IMove move : moves) {
+                    // Current state clone
                     GameSimulator newSimulator = createSimulator(simulator.getCurrentState());
+                    // Make the move
                     newSimulator.updateGame(move);
-                    int score = minimax(newSimulator, depth -1, alpha, beta,true);
-                    bestScore = Math.min(bestScore, score);
-                    beta = Math.min(beta, score);
-                    // Alpha cut-off: if beta is less than or equal to alpha, stop searching further
+                    int val = minimax(newSimulator, depth - 1, alpha, beta, true /*isMaximizingPlayer*/);
+                    best = Math.min(best, val);
+                    beta = Math.min(beta, best);
                     if (beta <= alpha)
                         break; // Alpha cut-off
                 }
-                return bestScore;
+                System.out.println("score from minimax" + best);
+                return best;
             }
         }
-    }
-    private int evaluate(GameSimulator simulator) {
-        int score = 0;
-        //gauti current board visus ejimus
-        //
-        // Check each mini-board
-        for (int miniRow = 0; miniRow < 3; miniRow++) {
-            for (int miniCol = 0; miniCol < 3; miniCol++) {
-                char winner = getMiniBoardWinner(simulator, miniRow * 3, miniCol * 3);
-                if (winner == 'X') {
-                    score += 100; // Favorable score for maximizing player (X) winning mini-board
-                } else if (winner == 'O') {
-                    score -= 100; // Unfavorable score for minimizing player (O) winning mini-board
-                } else {
-                    // Check for potential threats and opportunities in each mini-board
-                    score += evaluateMiniBoard(simulator, miniRow * 3, miniCol * 3, 'X');
-                    score -= evaluateMiniBoard(simulator, miniRow * 3, miniCol * 3, 'O');
+        private int evaluate2(GameSimulator simulator) {
+            //Need to get current board in full
+            List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
+            if(!moves.isEmpty()){
+            int localX = moves.get(0).getX() % 3;
+            int localY = moves.get(0).getY() % 3;
+            int startX = moves.get(0).getX() - (localX);
+            int startY = moves.get(0).getY() - (localY);
+            String[][] macroBoard = simulator.getCurrentState().getField().getBoard();
+
+
+            // Checking for Rows for X or O victory.
+            for (int row = startX; row < startX + 3; row++) {
+                if (macroBoard[row][0].equals(macroBoard[row][1]) &&
+                        macroBoard[row][1].equals(macroBoard[row][2])) {
+                    if (macroBoard[row][0].equals(Integer.toString(player))) {
+                        return +10;
+                    } else if (macroBoard[row][0].equals(Integer.toString(opponent))) {
+                        return -10;
+                    }
                 }
             }
+
+            // Checking for Columns for X or O victory.
+            for (int col = startY; col < startY + 3; col++) {
+                if (macroBoard[startX][col].equals(macroBoard[startX + 1][col]) &&
+                        macroBoard[startX + 1][col].equals(macroBoard[startX + 2][col])) {
+                    if (macroBoard[startX][col].equals(Integer.toString(player))) {
+                        return +10;
+                    } else if (macroBoard[startX][col].equals(Integer.toString(opponent))) {
+                        return -10;
+                    }
+                }
+            }
+                // Checking for Diagonals for X or O victory.
+                if (macroBoard[startX][startY].equals(macroBoard[startX + 1][startY + 1]) && macroBoard[startX + 1][startY + 1].equals(macroBoard[startX + 2][startY + 2])) {
+                    if (macroBoard[0][0].equals(Integer.toString(player))) {
+                        return +10;
+                    } else if (macroBoard[0][0].equals(Integer.toString(opponent))) {
+                        return -10;
+                    }
+                }
+                if (macroBoard[0][2].equals(macroBoard[1][1]) && macroBoard[1][1].equals(macroBoard[2][0])) {
+                    if (macroBoard[0][2].equals(Integer.toString(player))) {
+                        return +10;
+                    } else if (macroBoard[0][2].equals(Integer.toString(opponent))) {
+                        return -10;
+                    }
+                }
+
+            // Else if none of them have won then return 0
+            return 0;
+        }return 0;
+        }
+        //ideja- evaluate turetu imti Move o new visa simulatoriu
+        private int evaluate(GameSimulator simulator) {
+            List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
+            if(!moves.isEmpty()) {
+                int localX = moves.get(0).getX() % 3;
+                int localY = moves.get(0).getY() % 3;
+                int startX = moves.get(0).getX() - (localX);
+                int startY = moves.get(0).getY() - (localY);
+                String[][] board = simulator.getCurrentState().getField().getBoard();
+
+                int score = 0;
+
+                // Evaluate rows
+                for (int row = startX; row < startX + 3; row++) {
+                    score += evaluateLine(board[row][startY], board[row][startY + 1], board[row][startY + 2]);
+                }
+
+                // Evaluate columns
+                for (int col = startY; col < startY + 3; col++) {
+                    score += evaluateLine(board[startX][col], board[startX + 1][col], board[startX + 2][col]);
+                }
+
+                // Evaluate diagonals
+                score += evaluateLine(board[startX][startY], board[startX + 1][startY + 1], board[startX + 2][startY + 2]);
+                score += evaluateLine(board[startX][startY + 2], board[startX + 1][startY + 1], board[startX + 2][startY]);
+
+
+                return score;
+            }
+            return 0;
         }
 
-        return score;
+        private int evaluateLine(String cell1, String cell2, String cell3) {
+            int score = 0;
+
+            // Count the number of X's and O's in the line
+            int playerCount = 0;
+            int opponentCount = 0;
+            for (String cell : new String[]{cell1, cell2, cell3}) {
+                if (cell.equals(Integer.toString(player))) {
+                    playerCount++;
+                } else if (cell.equals(Integer.toString(opponent))) {
+                    opponentCount++;
+                }
+            }
+
+           /* // Assign scores based on the counts
+            if (playerCount == 3) {
+                score = 100; // Player wins
+            } else if (opponentCount == 3) {
+                score = -100; // Opponent wins
+            } else if (playerCount == 2 && opponentCount == 0) {
+                score = 10; // Two in a row for player
+            } else if (opponentCount == 2 && playerCount == 0) {
+                score = -10; // Two in a row for opponent
+            }*/
+            // Assign scores based on the presence of player's and opponent's marks in the line
+            if (playerCount == 3) {
+                score += 1000; // Player wins the line
+            } else if (opponentCount == 3) {
+                score -= 1000; // Opponent wins the line
+            } else if (playerCount == 2 && opponentCount == 0) {
+                score += 100; // Two in a row for player
+            } else if (opponentCount == 2 && playerCount == 0) {
+                score -= 100; // Two in a row for opponent, consider blocking
+            } else if (playerCount == 1 && opponentCount == 0) {
+                score += 10; // One in a row for player
+            } else if (opponentCount == 1 && playerCount == 0) {
+                score -= 10; // One in a row for opponent
+            } else if (playerCount == 0 && opponentCount == 1) {
+                score -= 5; // Opponent has one in a row, consider blocking
+            }
+
+            return score;
+        }
+
+        private Move findBestMove(GameSimulator simulator,int depth)
+        {
+            player = currentPlayer;
+            opponent = (player == 0) ? 1 : 0;
+
+            int bestVal = -1000;
+            Move bestMove = new Move();
+            bestMove.x = -1;
+            bestMove.y = -1;
+            List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
+            // Traverse all cells, evaluate minimax function for all empty cells. And return the cell
+            // with optimal value.
+            for (IMove move : moves) {
+                // Current state clone
+                GameSimulator newSimulator = createSimulator(simulator.getCurrentState());
+                // Make the move
+                newSimulator.updateGame(move);
+
+                // compute evaluation function for this move.
+                int moveVal = minimax(newSimulator, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+
+                // If the value of the current move is more than the best value, then update best
+
+                if (moveVal > bestVal) {
+                    bestMove.x = move.getX();
+                    bestMove.y = move.getY();
+                    bestVal = moveVal;
+                }
+            }
+            System.out.println("best move from bestMove" + bestMove);
+            return bestMove;
+        }
+
+
+
+
     }
+
+    //To change
+
 
     // Helper method to evaluate each mini-board
     private int evaluateMiniBoard(GameSimulator simulator, int startRow, int startCol, char player) {
@@ -475,11 +639,4 @@ public class UnkillableDemon implements IBot {
 
     }
 
-
-
-
-
 }
-
-
-

@@ -13,6 +13,7 @@ public class ExampleSneakyBot implements IBot {
     final int moveTimeMs = 1000;
     private String BOT_NAME = getClass().getSimpleName();
 
+
     private GameSimulator createSimulator(IGameState state) {
         GameSimulator simulator = new GameSimulator(new GameState());
         simulator.setGameOver(GameOverState.Active);
