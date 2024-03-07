@@ -362,19 +362,19 @@ public class FinalBoss implements IBot {
                 String[][] board = simulator.getCurrentState().getField().getBoard();
                 int score = 0;
 
-                // Evaluate rows
-                for (int row = x; row <= x + 2; row++) {   // 6,6
-                    score += evaluateLine(board[row][y], board[row][y + 1], board[row][y + 2]);
+
+                for (int row = startX; row < startX + 2; row++) {
+                    score += evaluateLine(board[row][startY], board[row][startY + 1], board[row][startY + 2]);
                 }
 
-                // Evaluate columns
-                for (int col = y; col <= y + 2; col++) {
-                    score += evaluateLine(board[x][col], board[x + 1][col], board[x + 2][col]);
+
+                for (int col = startY; col < startY + 3; col++) {
+                    score += evaluateLine(board[startX][col], board[startX + 1][col], board[startX + 2][col]);
                 }
 
-                // Evaluate diagonals
-                score += evaluateLine(board[y][x], board[y + 1][x + 1], board[y + 2][x + 2]);
-                score += evaluateLine(board[y][x + 2], board[y + 1][x + 1], board[y + 2][x]);
+
+                score += evaluateLine(board[startX][startY], board[startX + 1][startY + 1], board[startX + 2][startY + 2]);
+                score += evaluateLine(board[startX][startY + 2], board[startX + 1][startY + 1], board[startX + 2][startY]);
 
                 return score;
             }
