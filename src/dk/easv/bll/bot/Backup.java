@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-public class TestBot implements IBot {
+public class Backup implements IBot {
     final int moveTimeMs = 1000;
     private String BOT_NAME = getClass().getSimpleName();
     private long timerStartMillis = 0;
@@ -119,21 +119,21 @@ public class TestBot implements IBot {
             return "(" + x + "," + y + ")";
         }
 
-       // @Override
-       // public boolean equals(Object o) {
-       //     if (this == o) return true;
-       //     if (o == null || getClass() != o.getClass()) return false;
-       //     ExampleSneakyBot.Move move = (ExampleSneakyBot.Move) o;
-       //     return x == move.x && y == move.y;
-       // }
-       @Override
-       public boolean equals(Object o) {
-           if (this == o) return true;
-           if (o == null || getClass() != o.getClass()) return false;
-           Move move = (Move) o;
-           return x == move.x && y == move.y;
-       }
-//
+        // @Override
+        // public boolean equals(Object o) {
+        //     if (this == o) return true;
+        //     if (o == null || getClass() != o.getClass()) return false;
+        //     ExampleSneakyBot.Move move = (ExampleSneakyBot.Move) o;
+        //     return x == move.x && y == move.y;
+        // }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Move move = (Move) o;
+            return x == move.x && y == move.y;
+        }
+        //
         @Override
         public int hashCode() {
             return Objects.hash(x, y);
@@ -361,7 +361,7 @@ public class TestBot implements IBot {
             {
                 // int best = 1000;
                 int best = Integer.MAX_VALUE;
-              //  List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
+                //  List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
                 // Traverse all cells
                 for (IMove move : moves) {
                     // Current state clone

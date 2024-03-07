@@ -35,7 +35,7 @@ public class FinalBoss implements IBot {
     }
 
     private IMove calculateWinningMove(IGameState state){
-        int maxDepth = 3;
+        int maxDepth = 7;
 
         List<IMove> availableMoves = state.getField().getAvailableMoves();
 
