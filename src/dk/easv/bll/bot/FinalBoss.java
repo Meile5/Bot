@@ -6,11 +6,9 @@ import dk.easv.bll.game.IGameState;
 import dk.easv.bll.move.IMove;
 
 import java.sql.SQLOutput;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 
+import static dk.easv.bll.field.IField.AVAILABLE_FIELD;
 import static dk.easv.bll.game.GameManager.isWin;
 
 public class FinalBoss implements IBot {
@@ -48,7 +46,7 @@ public class FinalBoss implements IBot {
             simulator.updateGame(move);
 
             // Evaluate the move using minimax
-            int score = simulator.minimax(simulator, maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+            int score = simulator.minimax(simulator, maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, true, availableMoves);
 
             // If the score is better than the current best, update the best move
             if (score > bestScore) {
@@ -195,7 +193,7 @@ public class FinalBoss implements IBot {
             int macroY = move.getY() / 3;
 
             if (macroBoard[macroX][macroY].equals(IField.EMPTY_FIELD) ||
-                    macroBoard[macroX][macroY].equals(IField.AVAILABLE_FIELD)) {
+                    macroBoard[macroX][macroY].equals(AVAILABLE_FIELD)) {
 
                 String[][] board = getCurrentState().getField().getBoard();
 
@@ -221,7 +219,7 @@ public class FinalBoss implements IBot {
 
             for (int i = startX; i < startX + 3; i++) {
                 for (int k = startY; k < startY + 3; k++) {
-                    if (board[i][k].equals(IField.AVAILABLE_FIELD) ||
+                    if (board[i][k].equals(AVAILABLE_FIELD) ||
                             board[i][k].equals(IField.EMPTY_FIELD))
                         return false;
                 }
@@ -277,7 +275,7 @@ public class FinalBoss implements IBot {
             String[][] macroBoard = currentState.getField().getMacroboard();
             for (int i = 0; i < macroBoard.length; i++)
                 for (int k = 0; k < macroBoard[i].length; k++) {
-                    if (macroBoard[i][k].equals(IField.AVAILABLE_FIELD))
+                    if (macroBoard[i][k].equals(AVAILABLE_FIELD))
                         macroBoard[i][k] = IField.EMPTY_FIELD;
                 }
 
@@ -285,22 +283,29 @@ public class FinalBoss implements IBot {
             int yTrans = move.getY() % 3;
 
             if (macroBoard[xTrans][yTrans].equals(IField.EMPTY_FIELD))
-                macroBoard[xTrans][yTrans] = IField.AVAILABLE_FIELD;
+                macroBoard[xTrans][yTrans] = AVAILABLE_FIELD;
             else {
                 // Field is already won, set all fields not won to avail.
                 for (int i = 0; i < macroBoard.length; i++)
                     for (int k = 0; k < macroBoard[i].length; k++) {
                         if (macroBoard[i][k].equals(IField.EMPTY_FIELD))
-                            macroBoard[i][k] = IField.AVAILABLE_FIELD;
+                            macroBoard[i][k] = AVAILABLE_FIELD;
                     }
             }
         }
 
-        private int minimax(GameSimulator simulator, int depth, int alpha, int beta, boolean isMaximizing){
+        private int minimax(GameSimulator simulator, int depth, int alpha, int beta, boolean isMaximizing, List<IMove> availableMoves){
 
             int evaluationOfPosition = 0;
 
-            List<IMove> availableMoves = simulator.getCurrentState().getField().getAvailableMoves();
+            String[][] board = simulator.getCurrentState().getField().getBoard();
+
+            /*
+            for (IMove moves : availableMoves) {
+                if (simulator.getCurrentState().getField().isInActiveMicroboard(moves.getX(), moves.getY()) && board[moves.getX()][moves.getY()] == AVAILABLE_FIELD)
+                    System.out.println("True, move: " + moves);
+            }
+             */
 
             if (depth == 0 || simulator.getGameOver() != GameOverState.Active) {
                 // If at max depth or game over, evaluate the board state
@@ -310,32 +315,37 @@ public class FinalBoss implements IBot {
 
             int evaluation = evaluate(simulator);
 
-            if(isMaximizing){
+            if (isMaximizing) {
                 int bestMax = Integer.MIN_VALUE;
-                for (IMove move : availableMoves){
+                for (IMove move : availableMoves) {
                     // Current state clone
                     GameSimulator newSimulator = createSimulator(simulator.getCurrentState());
                     newSimulator.updateGame(move);
 
-                    int eval = minimax(newSimulator, depth - 1, alpha, beta, false);
+                    // Pass a sublist of availableMoves to the recursive call
+                    List<IMove> nextOpponentAvailableMoves = newSimulator.getCurrentState().getField().getAvailableMoves();
+
+                    int eval = minimax(newSimulator, depth - 1, alpha, beta, false, nextOpponentAvailableMoves);
                     bestMax = Math.max(bestMax, eval);
                     alpha = Math.max(alpha, eval);
-                    if(beta <= alpha)
+                    if (beta <= alpha)
                         break;
                 }
                 return bestMax + evaluation;
             } else {
                 int bestMin = Integer.MAX_VALUE;
-                for (IMove move : availableMoves){
+                for (IMove move : availableMoves) {
                     // Current state clone
                     GameSimulator newSimulator = createSimulator(simulator.getCurrentState());
                     newSimulator.updateGame(move);
 
+                    // Pass a sublist of availableMoves to the recursive call
+                    List<IMove> nextAvailableMoves = newSimulator.getCurrentState().getField().getAvailableMoves();
 
-                    int eval = minimax(newSimulator, depth - 1, alpha, beta, true);
+                    int eval = minimax(newSimulator, depth - 1, alpha, beta, true, nextAvailableMoves);
                     bestMin = Math.min(bestMin, eval);
                     beta = Math.min(beta, eval);
-                    if(beta <= alpha)
+                    if (beta <= alpha)
                         break;
                 }
                 return bestMin - evaluation;
@@ -351,6 +361,9 @@ public class FinalBoss implements IBot {
                 int startX = moves.get(0).getX() - (localX);
                 int startY = moves.get(0).getY() - (localY);
 
+                int x = moves.get(0).getX();
+                int y = moves.get(0).getY();
+
                 //do for loop with the board and the current available moves, one by one
 
                 String[][] board = simulator.getCurrentState().getField().getBoard();
@@ -359,7 +372,6 @@ public class FinalBoss implements IBot {
                 // Evaluate rows
                 for (int row = startX; row < startX + 3; row++) {
                     score += evaluateLine(board[row][startY], board[row][startY + 1], board[row][startY + 2]);
-                    System.out.println(board[row][startY] + board[row][startY + 1] + board[row][startY + 2]);
                 }
 
                 // Evaluate columns
