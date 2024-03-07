@@ -300,20 +300,13 @@ public class FinalBoss implements IBot {
 
             String[][] board = simulator.getCurrentState().getField().getBoard();
 
-            /*
-            for (IMove moves : availableMoves) {
-                if (simulator.getCurrentState().getField().isInActiveMicroboard(moves.getX(), moves.getY()) && board[moves.getX()][moves.getY()] == AVAILABLE_FIELD)
-                    System.out.println("True, move: " + moves);
-            }
-             */
-
             if (depth == 0 || simulator.getGameOver() != GameOverState.Active) {
                 // If at max depth or game over, evaluate the board state
-                evaluationOfPosition += evaluate(simulator);
+                evaluationOfPosition += evaluate(simulator, availableMoves);
                 return evaluationOfPosition;
             }
 
-            int evaluation = evaluate(simulator);
+            int evaluation = evaluate(simulator, availableMoves);
 
             if (isMaximizing) {
                 int bestMax = Integer.MIN_VALUE;
@@ -353,8 +346,8 @@ public class FinalBoss implements IBot {
         }
 
 
-        private int evaluate(GameSimulator simulator) {
-            List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
+        private int evaluate(GameSimulator simulator, List<IMove> availableMoves) {
+            List<IMove> moves = availableMoves;
             if(!moves.isEmpty()) {
                 int localX = moves.get(0).getX() % 3;
                 int localY = moves.get(0).getY() % 3;
@@ -370,18 +363,18 @@ public class FinalBoss implements IBot {
                 int score = 0;
 
                 // Evaluate rows
-                for (int row = startX; row < startX + 3; row++) {
-                    score += evaluateLine(board[row][startY], board[row][startY + 1], board[row][startY + 2]);
+                for (int row = x; row <= x + 2; row++) {   // 6,6
+                    score += evaluateLine(board[row][y], board[row][y + 1], board[row][y + 2]);
                 }
 
                 // Evaluate columns
-                for (int col = startY; col < startY + 3; col++) {
-                    score += evaluateLine(board[startX][col], board[startX + 1][col], board[startX + 2][col]);
+                for (int col = y; col <= y + 2; col++) {
+                    score += evaluateLine(board[x][col], board[x + 1][col], board[x + 2][col]);
                 }
 
                 // Evaluate diagonals
-                score += evaluateLine(board[startX][startY], board[startX + 1][startY + 1], board[startX + 2][startY + 2]);
-                score += evaluateLine(board[startX][startY + 2], board[startX + 1][startY + 1], board[startX + 2][startY]);
+                score += evaluateLine(board[y][x], board[y + 1][x + 1], board[y + 2][x + 2]);
+                score += evaluateLine(board[y][x + 2], board[y + 1][x + 1], board[y + 2][x]);
 
                 return score;
             }
