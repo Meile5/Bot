@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.Random;
 
 public class TestBot implements IBot {
-    final int moveTimeMs = 1000;
+    final int moveTimeMs = 970;
     private String BOT_NAME = getClass().getSimpleName();
     private long timerStartMillis = 0;
 
@@ -30,35 +30,38 @@ public class TestBot implements IBot {
 
     @Override
     public IMove doMove(IGameState state) {
+        long startTime = System.currentTimeMillis();
         //startTimer("Minimax move");
-
-        return calculateWinningMove(state, moveTimeMs);
+        IMove move = calculateWinningMove(state, moveTimeMs);
+        long endTime = System.currentTimeMillis();
+        long totalTimeTaken = endTime - startTime;
+        System.out.println("Total time taken for the move: " + totalTimeTaken + "ms");
+        return move;
     }
 
     // Plays single games until it wins and returns the first move for that. If iterations reached with no clear win, just return random valid move
     private IMove calculateWinningMove(IGameState state, int maxTimeMs){
-        /*long startTime = System.currentTimeMillis();
-        int depth = 5; // Set the maximum depth for the search tree
-        // grazina move findBestMove
-        IMove bestMove = null;
-        GameSimulator simulator = createSimulator(state);
-        bestMove = simulator.findBestMove(simulator,depth);
 
-        long endTime = System.currentTimeMillis();
-        //stopTimer();
-            // Return the best move found within the time limit
-            return bestMove;*/
         long startTime = System.currentTimeMillis();
-        int depth = 1; // Start with initial depth
-        IMove bestMove = null;
+        long endTime = startTime + maxTimeMs;
+        int depth = 1; // Start with a depth of 1
 
-        // Continue searching until time limit is reached
-        while (System.currentTimeMillis() - startTime < maxTimeMs) {
-            GameSimulator simulator = createSimulator(state);
-            bestMove = simulator.findBestMove(simulator, depth);
-            depth++; // Increase depth for next iteration
+        IMove bestMove = null;
+       GameSimulator simulator = createSimulator(state);
+
+        // Iteratively increase the depth until time runs out or the maximum time is reached
+        while (System.currentTimeMillis() < endTime && System.currentTimeMillis() - startTime < maxTimeMs) {
+            IMove currentBestMove = simulator.findBestMove(simulator, depth);
+            if (currentBestMove != null) {
+                bestMove = currentBestMove;
+            }
+            depth++; // Increase the depth for the next iteration
         }
 
+        long totalTimeTaken = System.currentTimeMillis() - startTime;
+        System.out.println("Total time taken: " + totalTimeTaken + "ms");
+
+        // Return the best move found within the time limit
         return bestMove;
 
     }

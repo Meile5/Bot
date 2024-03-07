@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class TestBot2 implements IBot {
-    final int moveTimeMs = 1000;
+    final int moveTimeMs = 970;
     private String BOT_NAME = getClass().getSimpleName();
     private long timerStartMillis = 0;
 
@@ -28,13 +28,17 @@ public class TestBot2 implements IBot {
 
     @Override
     public IMove doMove(IGameState state) {
+        long startTime = System.currentTimeMillis();
         //startTimer("Minimax move");
-
-        return calculateWinningMove(state, moveTimeMs);
+        IMove move = calculateWinningMove(state, moveTimeMs);
+        long endTime = System.currentTimeMillis();
+        long totalTimeTaken = endTime - startTime;
+        System.out.println("Total time taken for the move: " + totalTimeTaken + "ms");
+        return move;
     }
 
     // Plays single games until it wins and returns the first move for that. If iterations reached with no clear win, just return random valid move
-    private IMove calculateWinningMove(IGameState state, int maxTimeMs) {
+   /* private IMove calculateWinningMove(IGameState state, int maxTimeMs) {
         long startTime = System.currentTimeMillis();
         int depth = 3; // Set the maximum depth for the search tree
         // grazina move findBestMove
@@ -44,6 +48,29 @@ public class TestBot2 implements IBot {
 
         long endTime = System.currentTimeMillis();
         //stopTimer();
+        // Return the best move found within the time limit
+        return bestMove;
+    }*/
+    private IMove calculateWinningMove(IGameState state, int maxTimeMs) {
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + maxTimeMs;
+        int depth = 1; // Start with a depth of 1
+
+        IMove bestMove = null;
+        GameSimulator simulator = createSimulator(state);
+
+        // Iteratively increase the depth until time runs out or the maximum time is reached
+        while (System.currentTimeMillis() < endTime && System.currentTimeMillis() - startTime < maxTimeMs) {
+            IMove currentBestMove = simulator.findBestMove(simulator, depth);
+            if (currentBestMove != null) {
+                bestMove = currentBestMove;
+            }
+            depth++; // Increase the depth for the next iteration
+        }
+
+        long totalTimeTaken = System.currentTimeMillis() - startTime;
+        System.out.println("Total time taken: " + totalTimeTaken + "ms");
+
         // Return the best move found within the time limit
         return bestMove;
     }
@@ -633,7 +660,7 @@ public class TestBot2 implements IBot {
 
                          // compute evaluation function for this
                          // move with alpha-beta pruning.
-                         int moveVal = minimax(board, 0, alpha, beta, false);
+                         int moveVal = minimax(board, 6, alpha, beta, false);
 
                          // Undo the move
                          board[i][j] = (".");
@@ -654,151 +681,213 @@ public class TestBot2 implements IBot {
              }
              return bestMove;
          }
-             private int evaluate(String b[][])
-         {
-             // Checking for Rows for X or O victory.
-             for (int row = 0; row < 3; row++)
-             {
-                 if (b[row][0].equals(b[row][1]) &&
-                         b[row][1].equals(b[row][2]))
-                 {
-                     if (b[row][0].equals(Integer.toString(player)))
-                         return +10;
-                     else if (b[row][0].equals(Integer.toString(opponent)))
-                         return -10;
+         private int evaluate3(String[][] board) {
+             int score = 0;
+
+             // Checking for Rows, Columns, and Diagonals for potential wins
+             for (int i = 0; i < 3; i++) {
+                 if (board[i][0].equals(board[i][1]) && board[i][1].equals(board[i][2])) {
+                     if (board[i][0].equals(Integer.toString(player))) score += 100;
+                     else if (board[i][0].equals(Integer.toString(opponent))) score -= 100;
+                 }
+
+                 if (board[0][i].equals(board[1][i]) && board[1][i].equals(board[2][i])) {
+                     if (board[0][i].equals(Integer.toString(player))) score += 100;
+                     else if (board[0][i].equals(Integer.toString(opponent))) score -= 100;
                  }
              }
 
-             // Checking for Columns for X or O victory.
-             for (int col = 0; col < 3; col++)
-             {
-                 if (b[0][col].equals(b[1][col]) &&
-                         b[1][col].equals(b[2][col]))
-                 {
-                     if (b[0][col].equals(Integer.toString(player)))
-                         return +10;
-
-                     else if (b[0][col].equals(Integer.toString(opponent)))
-                         return -10;
-                 }
+             if (board[0][0].equals(board[1][1]) && board[1][1].equals(board[2][2])) {
+                 if (board[0][0].equals(Integer.toString(player))) score += 100;
+                 else if (board[0][0].equals(Integer.toString(opponent))) score -= 100;
              }
 
-             // Checking for Diagonals for X or O victory.
-             if (b[0][0].equals(b[1][1]) && b[1][1].equals(b[2][2]))
-             {
-                 if (b[0][0].equals(Integer.toString(player)))
-                     return +10;
-                 else if (b[0][0].equals(Integer.toString(opponent)))
-                     return -10;
+             if (board[0][2].equals(board[1][1]) && board[1][1].equals(board[2][0])) {
+                 if (board[0][2].equals(Integer.toString(player))) score += 100;
+                 else if (board[0][2].equals(Integer.toString(opponent))) score -= 100;
              }
 
-             if (b[0][2] == b[1][1] && b[1][1].equals(b[2][0]))
-             {
-                 if (b[0][2].equals(Integer.toString(player)))
-                     return +10;
-                 else if (b[0][2].equals(Integer.toString(opponent)))
-                     return -10;
-             }
+             // Check for center control
+             if (board[1][1].equals(Integer.toString(player))) score += 50;
+             else if (board[1][1].equals(Integer.toString(opponent))) score -= 50;
 
-             // Else if none of them have won then return 0
-             return 0;
+             // Check for corner control
+             if (board[0][0].equals(Integer.toString(player)) || board[0][2].equals(Integer.toString(player)) ||
+                     board[2][0].equals(Integer.toString(player)) || board[2][2].equals(Integer.toString(player)))
+                 score += 30;
+             else if (board[0][0].equals(Integer.toString(opponent)) || board[0][2].equals(Integer.toString(opponent)) ||
+                     board[2][0].equals(Integer.toString(opponent)) || board[2][2].equals(Integer.toString(opponent)))
+                 score -= 30;
+
+             // Check for blocking opponent's potential wins
+             for (int i = 0; i < 3; i++) {
+                 // Check rows
+                 if (board[i][0].equals(Integer.toString(opponent)) && board[i][1].equals(Integer.toString(opponent)) && board[i][2].equals(".")) score -= 75;
+                 // Check columns
+                 if (board[0][i].equals(Integer.toString(opponent)) && board[1][i].equals(Integer.toString(opponent)) && board[2][i].equals(".")) score -= 75;
+             }
+             // Check diagonals
+             if (board[0][0].equals(Integer.toString(opponent)) && board[1][1].equals(Integer.toString(opponent)) && board[2][2].equals(".")) score -= 75;
+             if (board[0][2].equals(Integer.toString(opponent)) && board[1][1].equals(Integer.toString(opponent)) && board[2][0].equals(".")) score -= 75;
+
+             return score;
          }
-          //private int minimax2(String board[][], int depth, Boolean isMax) {
-          //   int score = evaluate(board);
-//
-          //   // If Maximizer has won the game
-          //   // return his/her evaluated score
-          //   if (score == 10)
-          //       return score;
-//
-          //   // If Minimizer has won the game
-          //   // return his/her evaluated score
-          //   if (score == -10)
-          //       return score;
-//
-          //   // If there are no more moves and
-          //   // no winner then it is a tie
-          //   if (isMovesLeft(board) == false)
-          //       return 0;
-//
-          //   // If this maximizer's move
-          //   if (isMax)
-          //   {
-          //       int best = -1000;
-//
-          //       // Traverse all cells
-          //       for (int i = 0; i < 3; i++)
-          //       {
-          //           for (int j = 0; j < 3; j++)
-          //           {
-          //               // Check if cell is empty
-          //               if (board[i][j].equals("."))
-          //               {
-          //                   // Make the move
-          //                   board[i][j] = (Integer.toString(player));
-//
-          //                   // Call minimax recursively and choose
-          //                   // the maximum value
-          //                   best = Math.max(best, minimax(board,
-          //                           depth + 1, !isMax));
-//
-          //                   // Undo the move
-          //                   board[i][j] = ".";
-          //               }
-          //           }
-          //       }
-          //       return best;
-          //   }
-//
-          //   // If this minimizer's move
-          //   else
-          //   {
-          //       int best = 1000;
-//
-          //       // Traverse all cells
-          //       for (int i = 0; i < 3; i++)
-          //       {
-          //           for (int j = 0; j < 3; j++)
-          //           {
-          //               // Check if cell is empty
-          //               if (board[i][j].equals("."))
-          //               {
-          //                   // Make the move
-          //                   board[i][j] = (Integer.toString(opponent));
-//
-          //                   // Call minimax recursively and choose
-          //                   // the minimum value
-          //                   best = Math.min(best, minimax(board,
-          //                           depth + 1, !isMax));
-//
-          //                   // Undo the move
-          //                   board[i][j] = (".");
-          //               }
-          //           }
-          //       }
-          //       return best;
-          //   }
-         //}//
-//
+
+         private int evaluate2(String[][] board) {
+             int score = 0;
+
+             // Check rows for potential wins/losses and blocking moves
+             for (int i = 0; i < 3; i++) {
+                 if (board[i][0].equals(board[i][1]) && board[i][1].equals(board[i][2])) {
+                     if (board[i][0].equals(Integer.toString(player))) score += 100;
+                     else if (board[i][0].equals(Integer.toString(opponent))) score -= 100;
+                 } else if (board[i][0].equals(Integer.toString(opponent)) && board[i][1].equals(Integer.toString(opponent)) && board[i][2].equals(".")) {
+                     score -= 50; // Blocking opponent's potential win
+                 }
+             }
+
+             // Check columns for potential wins/losses and blocking moves
+             for (int i = 0; i < 3; i++) {
+                 if (board[0][i].equals(board[1][i]) && board[1][i].equals(board[2][i])) {
+                     if (board[0][i].equals(Integer.toString(player))||board[1][i].equals(Integer.toString(player))||board[2][i].equals(Integer.toString(player))) score += 100;
+                     else if (board[0][i].equals(Integer.toString(opponent))) score -= 100;
+                 } else if (board[0][i].equals(Integer.toString(opponent)) && board[1][i].equals(Integer.toString(opponent)) && board[2][i].equals(".")) {
+                     score -= 50; // Blocking opponent's potential win
+                 }
+             }
+
+             // Check diagonals for potential wins/losses and blocking moves
+             if (board[0][0].equals(board[1][1]) && board[1][1].equals(board[2][2])) {
+                 if (board[0][0].equals(Integer.toString(player))) score += 100;
+                 else if (board[0][0].equals(Integer.toString(opponent))) score -= 100;
+             } else if (board[0][0].equals(Integer.toString(opponent)) && board[1][1].equals(Integer.toString(opponent)) && board[2][2].equals(".")) {
+                 score -= 50; // Blocking opponent's potential win
+             }
+
+             if (board[0][2].equals(board[1][1]) && board[1][1].equals(board[2][0])) {
+                 if (board[0][2].equals(Integer.toString(player))) score += 100;
+                 else if (board[0][2].equals(Integer.toString(opponent))) score -= 100;
+             } else if (board[0][2].equals(Integer.toString(opponent)) && board[1][1].equals(Integer.toString(opponent)) && board[2][0].equals(".")) {
+                 score -= 50; // Blocking opponent's potential win
+             }
+
+             // Check for potential forks for the player
+             if ((board[0][0].equals(Integer.toString(player)) && board[2][2].equals(Integer.toString(player))) ||
+                     (board[0][2].equals(Integer.toString(player)) && board[2][0].equals(Integer.toString(player)))) {
+                 score += 40;
+             }
+
+             // Check for potential forks for the opponent
+             if ((board[0][0].equals(Integer.toString(opponent)) && board[2][2].equals(Integer.toString(opponent))) ||
+                     (board[0][2].equals(Integer.toString(opponent)) && board[2][0].equals(Integer.toString(opponent)))) {
+                 score -= 40;
+             }
+
+             return score;
+         }
+
+         private int evaluate(String[][] board) {
+             int score = 0;
+
+             // Check rows for potential wins/losses and blocking moves
+             for (int i = 0; i < 3; i++) {
+                 if (board[i][0].equals(board[i][1]) && board[i][1].equals(board[i][2])) {
+                     if (board[i][0].equals(Integer.toString(player))) score += 100;
+                     else if (board[i][0].equals(Integer.toString(opponent))) score -= 100;
+                 } else if (board[i][0].equals(Integer.toString(opponent)) && board[i][1].equals(Integer.toString(opponent)) && board[i][2].equals(".")) {
+                     score -= 50; // Blocking opponent's potential win
+                 }
+             }
+
+             // Check columns for potential wins/losses and blocking moves
+             for (int i = 0; i < 3; i++) {
+                 if (board[0][i].equals(board[1][i]) && board[1][i].equals(board[2][i])) {
+                     if (board[0][i].equals(Integer.toString(player)) || board[1][i].equals(Integer.toString(player)) || board[2][i].equals(Integer.toString(player))) score += 100;
+                     else if (board[0][i].equals(Integer.toString(opponent))) score -= 100;
+                 } else if (board[0][i].equals(Integer.toString(opponent)) && board[1][i].equals(Integer.toString(opponent)) && board[2][i].equals(".")) {
+                     score -= 50; // Blocking opponent's potential win
+                 }
+             }
+
+             // Check diagonals for potential wins/losses and blocking moves
+             if (board[0][0].equals(board[1][1]) && board[1][1].equals(board[2][2])) {
+                 if (board[0][0].equals(Integer.toString(player))) score += 100;
+                 else if (board[0][0].equals(Integer.toString(opponent))) score -= 100;
+             } else if (board[0][0].equals(Integer.toString(opponent)) && board[1][1].equals(Integer.toString(opponent)) && board[2][2].equals(".")) {
+                 score -= 50; // Blocking opponent's potential win
+             }
+
+             if (board[0][2].equals(board[1][1]) && board[1][1].equals(board[2][0])) {
+                 if (board[0][2].equals(Integer.toString(player))) score += 100;
+                 else if (board[0][2].equals(Integer.toString(opponent))) score -= 100;
+             } else if (board[0][2].equals(Integer.toString(opponent)) && board[1][1].equals(Integer.toString(opponent)) && board[2][0].equals(".")) {
+                 score -= 50; // Blocking opponent's potential win
+             }
+
+             // Check for potential forks for the player
+             if ((board[0][0].equals(Integer.toString(player)) && board[2][2].equals(Integer.toString(player))) ||
+                     (board[0][2].equals(Integer.toString(player)) && board[2][0].equals(Integer.toString(player)))) {
+                 score += 40;
+             }
+
+             // Check for potential forks for the opponent
+             if ((board[0][0].equals(Integer.toString(opponent)) && board[2][2].equals(Integer.toString(opponent))) ||
+                     (board[0][2].equals(Integer.toString(opponent)) && board[2][0].equals(Integer.toString(opponent)))) {
+                 score -= 40;
+             }
+
+             // Check for winning moves
+             if (isWinningMove(board, player)) {
+                 score += 1000; // Very high score for immediate win
+             }
+
+             // Check for blocking opponent's winning moves
+             if (isWinningMove(board, opponent)) {
+                 score -= 1000; // Very high penalty for allowing opponent's immediate win
+             }
+
+             // Advanced Patterns Recognition and Scoring
+             // (You can add more complex pattern recognition here)
+
+             return score;
+         }
+
+         // Helper function to check if a player has a winning move
+         private boolean isWinningMove(String[][] board, int player) {
+             // Check rows, columns, and diagonals for a winning move
+             for (int i = 0; i < 3; i++) {
+                 if ((board[i][0].equals(Integer.toString(player))) && board[i][1].equals(Integer.toString(player)) && board[i][2].equals(Integer.toString(player))||
+                         (board[0][i].equals(Integer.toString(player)) && board[1][i].equals(Integer.toString(player)) && board[2][i].equals(Integer.toString(player)))) {
+                     return true;
+                 }
+             }
+             // Check diagonals
+             if ((board[0][0].equals(Integer.toString(player)) && board[1][1].equals(Integer.toString(player)) && board[2][2].equals(Integer.toString(player))) ||
+                     (board[0][2].equals(Integer.toString(player))&& board[1][1].equals(Integer.toString(player)) && board[2][0].equals(Integer.toString(player)))) {
+                 return true;
+             }
+             return false;
+         }
+
 
          private int minimax(String board[][], int depth, int alpha, int beta, boolean isMax) {
              int score = evaluate(board);
 
              // If Maximizer has won the game
              // return his/her evaluated score
-             if (score == 10)
+             if (score >= 100)
                  return score;
-
-             // If Minimizer has won the game
-             // return his/her evaluated score
-             if (score == -10)
+//
+             //// If Minimizer has won the game
+             //// return his/her evaluated score
+             if (score <= -100)
                  return score;
-
-             // If there are no more moves and
-             // no winner then it is a tie
+//
+             //// If there are no more moves and
+             //// no winner then it is a tie
              if (isMovesLeft(board) == false)
                  return 0;
-
+//
              // If this maximizer's move
              if (isMax) {
                  int best = Integer.MIN_VALUE;
@@ -813,7 +902,7 @@ public class TestBot2 implements IBot {
 
                              // Call minimax recursively and choose
                              // the maximum value
-                             best = Math.max(best, minimax(board, depth + 1, alpha, beta, !isMax));
+                             best = Math.max(best, minimax(board, depth - 1, alpha, beta, !isMax));
 
                              // Undo the move
                              board[i][j] = ".";
@@ -844,7 +933,7 @@ public class TestBot2 implements IBot {
 
                              // Call minimax recursively and choose
                              // the minimum value
-                             best = Math.min(best, minimax(board, depth + 1, alpha, beta, !isMax));
+                             best = Math.min(best, minimax(board, depth - 1, alpha, beta, !isMax));
 
                              // Undo the move
                              board[i][j] = (".");
@@ -861,9 +950,6 @@ public class TestBot2 implements IBot {
                  return best;
              }
          }
-
-
-
      }
 
 
