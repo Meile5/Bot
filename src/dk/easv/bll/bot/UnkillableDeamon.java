@@ -8,8 +8,8 @@ import dk.easv.bll.move.IMove;
 import java.util.List;
 import java.util.Objects;
 
-public class TestBot2 implements IBot {
-    final int moveTimeMs = 500;
+public class UnkillableDeamon implements IBot {
+    final int moveTimeMs = 900;
     private String BOT_NAME = getClass().getSimpleName();
 
 
@@ -77,7 +77,7 @@ public class TestBot2 implements IBot {
 
     @Override
     public String getBotName() {
-        return BOT_NAME;
+        return "Unkillable Deamon";
     }
 
     public enum GameOverState {
